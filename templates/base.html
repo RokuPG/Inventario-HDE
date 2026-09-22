@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Inventory - Universidad</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Iconos de Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            overflow: hidden; /* Evita scroll innecesario en el body */
+        }
+        /* Barra superior fija */
+        .top-navbar {
+            height: 60px;
+            background-color: #6750a4;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1030;
+        }
+        /* Contenedor principal debajo de la barra superior */
+        .main-wrapper {
+            margin-top: 60px;
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+        /* Menú lateral fijo a la izquierda */
+        .sidebar {
+            width: 260px;
+            background-color: #1e2430;
+            position: fixed;
+            top: 60px;
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+            z-index: 1020;
+        }
+        /* Área de contenido desplazable a la derecha */
+        .content-area {
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            height: calc(100vh - 60px);
+            overflow-y: auto; /* El scroll ocurre únicamente aquí */
+        }
+        .active-link {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            font-weight: bold;
+        }
+        .observaciones-box {
+            max-height: 4.5em;
+            max-width: 20em; /* Altura estimada para 3 líneas de texto */
+            overflow-y: auto;  /* Muestra la barra de desplazamiento si excede el límite */
+            display: block;
+            word-break: break-word; /* Rompe palabras muy largas para que no ensanchen la tabla */
+            padding-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra Superior Fija -->
+    <nav class="navbar top-navbar px-3 d-flex justify-content-between">
+        <span class="navbar-brand mb-0 h1 text-white"><i class="bi bi-box-seam me-2"></i>Control Inventory</span>
+        <div class="text-white small d-flex align-items-center gap-3">
+            <span><i class="bi bi-person-circle me-1"></i> <strong>{{ session['username'] }}</strong> ({{ session['rol'] }})</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light"><i class="bi bi-box-arrow-right me-1"></i> Salir</a>
+        </div>
+    </nav>
+
+    <!-- Contenedor General -->
+    <div class="main-wrapper">
+        
+        <!-- Menú Lateral Fijo -->
+        <nav class="sidebar p-3">
+            <div class="sidebar-heading text-uppercase text-white-50 fw-bold small px-2 mb-2">Navegación</div>
+            <div class="list-group list-group-flush mb-4">
+                <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 rounded mb-1 {% if request.endpoint == 'dashboard' %}active-link{% endif %}">
+                    <i class="bi bi-speedometer2 me-2"></i> Panel Principal
+                </a>
+            </div>
+
+            <div class="sidebar-heading text-uppercase text-white-50 fw-bold small px-2 mb-2">Laboratorios / Talleres</div>
+            <div class="list-group list-group-flush">
+                {% for sec in secciones %}
+                    <a href="{{ url_for('ver_seccion', seccion_id=sec.id) }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 rounded mb-1 {% if seccion_actual and seccion_actual.id == sec.id %}active-link{% endif %}">
+                        {% if sec.tipo == 'Laboratorio' %}<i class="bi bi-display me-2"></i>{% else %}<i class="bi bi-tools me-2"></i>{% endif %}
+                        {{ sec.nombre }}
+                    </a>
+                {% endfor %}
+            </div>
+        </nav>
+
+        <!-- Área de Contenido Desplazable con Padding -->
+        <main class="content-area p-4">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

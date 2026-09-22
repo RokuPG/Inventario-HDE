@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Control Inventory</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #1e2430; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .card-login { width: 100%; max-width: 400px; border: none; border-radius: 12px; }
+        .btn-purple { background-color: #6750a4; color: white; }
+        .btn-purple:hover { background-color: #523e85; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="card card-login shadow-lg p-4">
+    <div class="text-center mb-4">
+        <i class="bi bi-box-seam text-primary display-4" style="color: #6750a4 !important;"></i>
+        <h3 class="mt-2 fw-bold">Control Inventory</h3>
+        <p class="text-muted small">Sistema de Gestión de Laboratorios y Talleres</p>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-danger text-center p-2 small mb-3">{{ error }}</div>
+    {% endif %}
+
+    <form action="{{ url_for('login') }}" method="POST">
+        <div class="mb-3">
+            <label class="form-label small text-muted">Usuario</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input type="text" name="username" class="form-control" placeholder="Ej: admin" required autofocus>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label small text-muted">Contraseña</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-purple w-100 py-2 fw-bold">Iniciar Sesión</button>
+    </form>
+</div>
+
+</body>
+</html>

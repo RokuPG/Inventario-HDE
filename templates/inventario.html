@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{{ seccion_actual.nombre }} <span class="badge bg-secondary fs-6">{{ seccion_actual.tipo }}</span></h2>
+    {% if session['rol'] in ['Administrador', 'Auxiliar'] %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregar">
+        <i class="bi bi-plus-lg me-1"></i> Agregar Elemento
+    </button>
+    {% endif %}
+</div>
+
+<!-- Tabla de Inventario -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Código</th>
+                    <th>Elemento</th>
+                    <th>Categoría</th>
+                    <th>Cantidad</th>
+                    <th>Estado</th>
+                    <th>Observaciones</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if elementos %}
+                    {% for elem in elementos %}
+                    <tr>
+                        <td><code>{{ elem.codigo }}</code></td>
+                        <td><strong>{{ elem.nombre }}</strong></td>
+                        <td>{{ elem.categoria }}</td>
+                        <td>{{ elem.cantidad }}</td>
+                        <td>
+                            {% if elem.estado == 'Operativo' %}
+                                <span class="badge bg-success">Operativo</span>
+                            {% elif elem.estado == 'Mantenimiento' %}
+                                <span class="badge bg-warning text-dark">Mantenimiento</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inoperativo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="observaciones-box">
+                                {{ elem.observaciones or '-' }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if session['rol'] in ['Administrador', 'Auxiliar'] %}
+                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEditar{{ elem.id }}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            {% endif %}
+
+                            {% if session['rol'] == 'Administrador' %}
+                                <a href="{{ url_for('eliminar_elemento', elem_id=elem.id, seccion_id=seccion_actual.id) }}" 
+                                class="btn btn-sm btn-outline-danger" 
+                                onclick="return confirm('¿Estás seguro de eliminar este elemento?');">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            {% endif %}
+
+                            {% if session['rol'] == 'Auditor' %}
+                                <span class="text-muted small"><i class="bi bi-lock-fill"></i> Solo lectura</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <!-- Modal Editar para cada elemento -->
+                    <div class="modal fade" id="modalEditar{{ elem.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form action="{{ url_for('editar_elemento', elem_id=elem.id) }}" method="POST">
+                                    <div class="modal-header bg-secondary text-white">
+                                        <h5 class="modal-title">Editar Elemento: {{ elem.codigo }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="seccion_id" value="{{ seccion_actual.id }}">
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Nombre / Modelo</label>
+                                            <input type="text" name="nombre" class="form-control" value="{{ elem.nombre }}" required>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Categoría</label>
+                                                <input type="text" name="categoria" class="form-control" value="{{ elem.categoria }}" required>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Cantidad</label>
+                                                <input type="number" name="cantidad" class="form-control" value="{{ elem.cantidad }}" min="1" required>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Estado</label>
+                                            <select name="estado" class="form-select">
+                                                <option value="Operativo" {% if elem.estado == 'Operativo' %}selected{% endif %}>Operativo</option>
+                                                <option value="Mantenimiento" {% if elem.estado == 'Mantenimiento' %}selected{% endif %}>Mantenimiento</option>
+                                                <option value="Inoperativo" {% if elem.estado == 'Inoperativo' %}selected{% endif %}>Inoperativo</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Observaciones</label>
+                                            <textarea name="observaciones" class="form-control" rows="2">{{ elem.observaciones or '' }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No hay elementos registrados en esta sección.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Agregar Nuevo Elemento -->
+<div class="modal fade" id="modalAgregar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('agregar_elemento') }}" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-box-seam me-2"></i>Nuevo Elemento para {{ seccion_actual.nombre }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="seccion_id" value="{{ seccion_actual.id }}">
+                    
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Código del Elemento</label>
+                            <input type="text" name="codigo" class="form-control" placeholder="Ej: MON-001, LAB-CPU-02" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Categoría</label>
+                            <input type="text" name="categoria" class="form-control" placeholder="Ej: Cómputo, Red, Herramienta" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre / Descripción</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Monitor Dell 24 pulgadas" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" name="cantidad" class="form-control" value="1" min="1" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Estado Inicial</label>
+                            <select name="estado" class="form-select">
+                                <option value="Operativo">Operativo</option>
+                                <option value="Mantenimiento">Mantenimiento</option>
+                                <option value="Inoperativo">Inoperativo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones (Opcional)</label>
+                        <textarea name="observaciones" class="form-control" rows="2" placeholder="Notas sobre el estado, fallas o detalles adicionales..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Elemento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
