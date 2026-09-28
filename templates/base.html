@@ -59,13 +59,34 @@
             word-break: break-word; /* Rompe palabras muy largas para que no ensanchen la tabla */
             padding-right: 5px;
         }
+        .circulo-imagen {
+            width: 35px;       /* Ancho del círculo */
+            height: 35px;      /* Alto del círculo (debe ser igual al ancho) */
+            border-radius: 50%; /* Hace que el contenedor sea redondo */
+            overflow: hidden;   /* Oculta todo lo que sobresalga del círculo */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 3px solid #3498db; /* Opcional: borde alrededor del círculo */
+        }
+
+        .circulo-imagen img {
+            width: 100%;        /* Hace que la imagen llene el contenedor */
+            height: 100%;       /* Hace que la imagen llene el contenedor */
+            object-fit: cover;  /* Mantiene la proporción de la imagen recortando los excesos */
+        }
     </style>
 </head>
 <body>
 
     <!-- Barra Superior Fija -->
     <nav class="navbar top-navbar px-3 d-flex justify-content-between">
-        <span class="navbar-brand mb-0 h1 text-white"><i class="bi bi-box-seam me-2"></i>Control Inventory</span>
+        <div class="d-flex align-items-center gap-2">
+            <div class="circulo-imagen">
+                <img src="{{ url_for('static', filename='resources/Escudo.jpg') }}" alt="Escudo">
+            </div>
+            <span class="navbar-brand mb-0 h1 text-white">Control Inventario - H. D. E.</span>
+        </div>
         <div class="text-white small d-flex align-items-center gap-3">
             <span><i class="bi bi-person-circle me-1"></i> <strong>{{ session['username'] }}</strong> ({{ session['rol'] }})</span>
             <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light"><i class="bi bi-box-arrow-right me-1"></i> Salir</a>
@@ -74,7 +95,7 @@
 
     <!-- Contenedor General -->
     <div class="main-wrapper">
-        
+
         <!-- Menú Lateral Fijo -->
         <nav class="sidebar p-3">
             <div class="sidebar-heading text-uppercase text-white-50 fw-bold small px-2 mb-2">Navegación</div>
@@ -85,7 +106,7 @@
             </div>
 
             <div class="sidebar-heading text-uppercase text-white-50 fw-bold small px-2 mb-2">Laboratorios / Talleres</div>
-            <div class="list-group list-group-flush">
+            <div class="list-group list-group-flush mb-4">
                 {% for sec in secciones %}
                     <a href="{{ url_for('ver_seccion', seccion_id=sec.id) }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 rounded mb-1 {% if seccion_actual and seccion_actual.id == sec.id %}active-link{% endif %}">
                         {% if sec.tipo == 'Laboratorio' %}<i class="bi bi-display me-2"></i>{% else %}<i class="bi bi-tools me-2"></i>{% endif %}
@@ -93,6 +114,21 @@
                     </a>
                 {% endfor %}
             </div>
+
+            {% if session['rol'] == 'Administrador' %}
+            <div class="sidebar-heading text-uppercase text-white-50 fw-bold small px-2 mb-2">Administración</div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('categorias') }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 rounded mb-1 {% if request.endpoint == 'categorias' %}active-link{% endif %}">
+                    <i class="bi bi-tags me-2"></i> Categorías y Códigos
+                </a>
+                <a href="{{ url_for('exportar_excel') }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 rounded mb-1">
+                    <i class="bi bi-file-earmark-excel me-2"></i> Exportar a Excel
+                </a>
+                <a href="{{ url_for('exportar_pdf') }}" class="list-group-item list-group-item-action bg-transparent text-white border-0 rounded mb-1">
+                    <i class="bi bi-file-earmark-pdf me-2"></i> Exportar a PDF
+                </a>
+            </div>
+            {% endif %}
         </nav>
 
         <!-- Área de Contenido Desplazable con Padding -->

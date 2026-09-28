@@ -1,133 +1,218 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>{{ seccion_actual.nombre }} <span class="badge bg-secondary fs-6">{{ seccion_actual.tipo }}</span></h2>
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <h2 class="mb-0">{{ seccion_actual.nombre }} <span class="badge bg-secondary fs-6">{{ seccion_actual.tipo }}</span></h2>
     {% if session['rol'] in ['Administrador', 'Auxiliar'] %}
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregar">
-        <i class="bi bi-plus-lg me-1"></i> Agregar Elemento
-    </button>
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarUnico">
+            <i class="bi bi-plus-lg me-1"></i> Agregar Elemento
+        </button>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarLote">
+            <i class="bi bi-stack me-1"></i> Agregar Lote
+        </button>
+    </div>
     {% endif %}
 </div>
+<p class="text-muted small mb-3">
+    {{ grupos|length }} tipo(s) de elemento registrados · {{ grupos|sum(attribute='total_cantidad') }} unidad(es) en total
+</p>
 
-<!-- Tabla de Inventario -->
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-dark">
-                <tr>
-                    <th>Código</th>
-                    <th>Elemento</th>
-                    <th>Categoría</th>
-                    <th>Cantidad</th>
-                    <th>Estado</th>
-                    <th>Observaciones</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if elementos %}
-                    {% for elem in elementos %}
-                    <tr>
-                        <td><code>{{ elem.codigo }}</code></td>
-                        <td><strong>{{ elem.nombre }}</strong></td>
-                        <td>{{ elem.categoria }}</td>
-                        <td>{{ elem.cantidad }}</td>
-                        <td>
-                            {% if elem.estado == 'Operativo' %}
-                                <span class="badge bg-success">Operativo</span>
-                            {% elif elem.estado == 'Mantenimiento' %}
-                                <span class="badge bg-warning text-dark">Mantenimiento</span>
-                            {% else %}
-                                <span class="badge bg-danger">Inoperativo</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="observaciones-box">
-                                {{ elem.observaciones or '-' }}
-                            </div>
-                        </td>
-                        <td>
-                            {% if session['rol'] in ['Administrador', 'Auxiliar'] %}
-                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEditar{{ elem.id }}">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                            {% endif %}
-
-                            {% if session['rol'] == 'Administrador' %}
-                                <a href="{{ url_for('eliminar_elemento', elem_id=elem.id, seccion_id=seccion_actual.id) }}" 
-                                class="btn btn-sm btn-outline-danger" 
-                                onclick="return confirm('¿Estás seguro de eliminar este elemento?');">
-                                    <i class="bi bi-trash"></i>
-                                </a>
-                            {% endif %}
-
-                            {% if session['rol'] == 'Auditor' %}
-                                <span class="text-muted small"><i class="bi bi-lock-fill"></i> Solo lectura</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-
-                    <!-- Modal Editar para cada elemento -->
-                    <div class="modal fade" id="modalEditar{{ elem.id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <form action="{{ url_for('editar_elemento', elem_id=elem.id) }}" method="POST">
-                                    <div class="modal-header bg-secondary text-white">
-                                        <h5 class="modal-title">Editar Elemento: {{ elem.codigo }}</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <input type="hidden" name="seccion_id" value="{{ seccion_actual.id }}">
-                                        
-                                        <div class="mb-3">
-                                            <label class="form-label">Nombre / Modelo</label>
-                                            <input type="text" name="nombre" class="form-control" value="{{ elem.nombre }}" required>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-6 mb-3">
-                                                <label class="form-label">Categoría</label>
-                                                <input type="text" name="categoria" class="form-control" value="{{ elem.categoria }}" required>
-                                            </div>
-                                            <div class="col-6 mb-3">
-                                                <label class="form-label">Cantidad</label>
-                                                <input type="number" name="cantidad" class="form-control" value="{{ elem.cantidad }}" min="1" required>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Estado</label>
-                                            <select name="estado" class="form-select">
-                                                <option value="Operativo" {% if elem.estado == 'Operativo' %}selected{% endif %}>Operativo</option>
-                                                <option value="Mantenimiento" {% if elem.estado == 'Mantenimiento' %}selected{% endif %}>Mantenimiento</option>
-                                                <option value="Inoperativo" {% if elem.estado == 'Inoperativo' %}selected{% endif %}>Inoperativo</option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Observaciones</label>
-                                            <textarea name="observaciones" class="form-control" rows="2">{{ elem.observaciones or '' }}</textarea>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+<!-- Barra de búsqueda y filtros -->
+<div class="card shadow-sm mb-3 border-0">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label small text-muted mb-1">Buscar</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" id="filtroBusqueda" class="form-control" placeholder="Nombre, código u observaciones...">
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted mb-1">Estado</label>
+                <select id="filtroEstado" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="Operativo">Operativo</option>
+                    <option value="Mantenimiento">Mantenimiento</option>
+                    <option value="Inoperativo">Inoperativo</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted mb-1">Categoría</label>
+                <select id="filtroCategoria" class="form-select">
+                    <option value="">Todas</option>
+                    {% for cat in categorias_presentes %}
+                        <option value="{{ cat }}">{{ cat }}</option>
                     {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">No hay elementos registrados en esta sección.</td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted mb-1">Código</label>
+                <select id="filtroCodigo" class="form-select">
+                    <option value="">Todos</option>
+                    {% for pre in prefijos_presentes %}
+                        <option value="{{ pre }}">{{ pre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted mb-1">Fecha de ingreso</label>
+                <select id="filtroOrden" class="form-select">
+                    <option value="desc">Recientes primero</option>
+                    <option value="asc">Antiguos primero</option>
+                </select>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Modal Agregar Nuevo Elemento -->
-<div class="modal fade" id="modalAgregar" tabindex="-1">
+<!-- Acordeón agrupado por prefijo de código (MON, CPU, TEC...) -->
+<div class="accordion" id="accordionInventario">
+    {% for grupo in grupos %}
+    <div class="accordion-item grupo-item mb-2 shadow-sm {% if grupo.inoperativos > 0 %}border-start border-4 border-danger{% elif grupo.mantenimiento > 0 %}border-start border-4 border-warning{% else %}border-start border-4 border-success{% endif %}"
+         data-categoria="{{ grupo.categoria }}" data-prefijo="{{ grupo.prefijo }}" data-fecha="{{ grupo.fecha_reciente }}">
+        <h2 class="accordion-header" id="heading{{ loop.index }}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#colapso{{ loop.index }}" aria-expanded="false" aria-controls="colapso{{ loop.index }}">
+                <div class="d-flex justify-content-between align-items-center w-100 me-3 flex-wrap gap-2">
+                    <div>
+                        <span class="fw-bold">{{ grupo.prefijo }}</span>
+                        <span class="text-muted">— {{ grupo.categoria }}</span>
+                        {% if grupo.descripcion %}<span class="text-muted small">({{ grupo.descripcion }})</span>{% endif %}
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="badge bg-light text-dark border">{{ grupo.total_cantidad }} unidad(es)</span>
+                        {% if grupo.operativos > 0 %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">{{ grupo.operativos }} Operativo</span>
+                        {% endif %}
+                        {% if grupo.mantenimiento > 0 %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">{{ grupo.mantenimiento }} Mantenimiento</span>
+                        {% endif %}
+                        {% if grupo.inoperativos > 0 %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">{{ grupo.inoperativos }} Inoperativo</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </button>
+        </h2>
+        <div id="colapso{{ loop.index }}" class="accordion-collapse collapse" aria-labelledby="heading{{ loop.index }}" data-bs-parent="#accordionInventario">
+            <div class="accordion-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Elemento</th>
+                            <th>Estado</th>
+                            <th>Ingreso</th>
+                            <th>Observaciones</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for elem in grupo.elementos %}
+                        <tr class="fila-item" data-estado="{{ elem.estado }}" data-fecha="{{ elem.fecha_ingreso or '' }}"
+                            data-search="{{ (elem.nombre ~ ' ' ~ elem.codigo ~ ' ' ~ (elem.observaciones or '')) | lower }}">
+                            <td><code>{{ elem.codigo }}</code></td>
+                            <td><strong>{{ elem.nombre }}</strong></td>
+                            <td>
+                                {% if elem.estado == 'Operativo' %}
+                                    <span class="badge bg-success">Operativo</span>
+                                {% elif elem.estado == 'Mantenimiento' %}
+                                    <span class="badge bg-warning text-dark">Mantenimiento</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inoperativo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted small">{{ elem.fecha_ingreso[:10] if elem.fecha_ingreso else '-' }}</td>
+                            <td>
+                                <div class="observaciones-box">
+                                    {{ elem.observaciones or '-' }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if session['rol'] in ['Administrador', 'Auxiliar'] %}
+                                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEditar{{ elem.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                {% endif %}
+
+                                {% if session['rol'] == 'Administrador' %}
+                                    <a href="{{ url_for('eliminar_elemento', elem_id=elem.id, seccion_id=seccion_actual.id) }}"
+                                    class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('¿Estás seguro de eliminar este elemento?');">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                {% endif %}
+
+                                {% if session['rol'] == 'Auditor' %}
+                                    <span class="text-muted small"><i class="bi bi-lock-fill"></i> Solo lectura</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- Modal Editar para cada elemento -->
+                        <div class="modal fade" id="modalEditar{{ elem.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('editar_elemento', elem_id=elem.id) }}" method="POST">
+                                        <div class="modal-header bg-secondary text-white">
+                                            <h5 class="modal-title">Editar Elemento: {{ elem.codigo }}</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <input type="hidden" name="seccion_id" value="{{ seccion_actual.id }}">
+
+                                            <div class="mb-3">
+                                                <label class="form-label">Nombre / Modelo</label>
+                                                <input type="text" name="nombre" class="form-control" value="{{ elem.nombre }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Categoría</label>
+                                                <input type="text" class="form-control" value="{{ elem.categoria }}" readonly disabled>
+                                                <div class="form-text">La categoría y el código se fijan al momento del ingreso.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Estado</label>
+                                                <select name="estado" class="form-select">
+                                                    <option value="Operativo" {% if elem.estado == 'Operativo' %}selected{% endif %}>Operativo</option>
+                                                    <option value="Mantenimiento" {% if elem.estado == 'Mantenimiento' %}selected{% endif %}>Mantenimiento</option>
+                                                    <option value="Inoperativo" {% if elem.estado == 'Inoperativo' %}selected{% endif %}>Inoperativo</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Observaciones</label>
+                                                <textarea name="observaciones" class="form-control" rows="2">{{ elem.observaciones or '' }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm border-0">
+        <div class="card-body text-center text-muted py-5">No hay elementos registrados en esta sección.</div>
+    </div>
+    {% endfor %}
+    <div id="sinResultados" class="card shadow-sm border-0 d-none">
+        <div class="card-body text-center text-muted py-5">
+            <i class="bi bi-search me-1"></i> Ningún elemento coincide con los filtros aplicados.
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar Elemento Único -->
+<div class="modal fade" id="modalAgregarUnico" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{{ url_for('agregar_elemento') }}" method="POST">
@@ -137,36 +222,46 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="seccion_id" value="{{ seccion_actual.id }}">
-                    
+
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label class="form-label">Código del Elemento</label>
-                            <input type="text" name="codigo" class="form-control" placeholder="Ej: MON-001, LAB-CPU-02" required>
+                            <label class="form-label">Categoría</label>
+                            <select id="selectCategoriaUnico" class="form-select" required>
+                                <option value="" selected disabled>Seleccione categoría</option>
+                                {% for cat in categorias %}
+                                    <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label">Categoría</label>
-                            <input type="text" name="categoria" class="form-control" placeholder="Ej: Cómputo, Red, Herramienta" required>
+                            <label class="form-label">Código</label>
+                            <select id="selectCodigoUnico" name="codigo_id" class="form-select" required disabled>
+                                <option value="" selected disabled>Seleccione categoría primero</option>
+                            </select>
+                            <div class="form-text" id="previewCodigoUnico"></div>
                         </div>
                     </div>
+
+                    {% if not categorias or not codigos %}
+                    <div class="alert alert-warning small py-2">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Aún no hay categorías o códigos configurados. Un Administrador debe crearlos primero en
+                        <strong>Categorías y Códigos</strong>.
+                    </div>
+                    {% endif %}
 
                     <div class="mb-3">
                         <label class="form-label">Nombre / Descripción</label>
                         <input type="text" name="nombre" class="form-control" placeholder="Ej: Monitor Dell 24 pulgadas" required>
                     </div>
 
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Cantidad</label>
-                            <input type="number" name="cantidad" class="form-control" value="1" min="1" required>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Estado Inicial</label>
-                            <select name="estado" class="form-select">
-                                <option value="Operativo">Operativo</option>
-                                <option value="Mantenimiento">Mantenimiento</option>
-                                <option value="Inoperativo">Inoperativo</option>
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Estado Inicial</label>
+                        <select name="estado" class="form-select">
+                            <option value="Operativo">Operativo</option>
+                            <option value="Mantenimiento">Mantenimiento</option>
+                            <option value="Inoperativo">Inoperativo</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
@@ -182,4 +277,252 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Agregar Lote de Elementos Iguales -->
+<div class="modal fade" id="modalAgregarLote" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('agregar_elemento_lote') }}" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-stack me-2"></i>Nuevo Lote para {{ seccion_actual.nombre }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="seccion_id" value="{{ seccion_actual.id }}">
+                    <p class="text-muted small">
+                        Crea varios elementos idénticos de una sola vez. Cada uno recibirá su propio código
+                        consecutivo (Ej: MON-006, MON-007, MON-008...) y podrá editarse o darse de baja por separado más adelante.
+                    </p>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Categoría</label>
+                            <select id="selectCategoriaLote" class="form-select" required>
+                                <option value="" selected disabled>Seleccione categoría</option>
+                                {% for cat in categorias %}
+                                    <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Código</label>
+                            <select id="selectCodigoLote" name="codigo_id" class="form-select" required disabled>
+                                <option value="" selected disabled>Seleccione categoría primero</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {% if not categorias or not codigos %}
+                    <div class="alert alert-warning small py-2">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Aún no hay categorías o códigos configurados. Un Administrador debe crearlos primero en
+                        <strong>Categorías y Códigos</strong>.
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre / Descripción (igual para todos)</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Mouse Logitech B100" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Cantidad de elementos a crear</label>
+                            <input type="number" id="cantidadLote" name="cantidad_lote" class="form-control" value="5" min="2" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Estado Inicial</label>
+                            <select name="estado" class="form-select">
+                                <option value="Operativo">Operativo</option>
+                                <option value="Mantenimiento">Mantenimiento</option>
+                                <option value="Inoperativo">Inoperativo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-text mb-3" id="previewCodigoLote"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones (Opcional, igual para todos)</label>
+                        <textarea name="observaciones" class="form-control" rows="2" placeholder="Notas sobre el estado, fallas o detalles adicionales..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Lote</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Catálogo de códigos generado desde el backend (categoria_id, prefijo, descripción, siguiente número)
+    const catalogoCodigos = [
+        {% for c in codigos %}
+        {
+            id: {{ c.id }},
+            categoria_id: {{ c.categoria_id }},
+            prefijo: {{ c.prefijo | tojson }},
+            descripcion: {{ (c.descripcion or '') | tojson }},
+            siguiente: {{ '%03d' % (c.contador + 1) }}
+        },
+        {% endfor %}
+    ];
+
+    // --- Lógica reutilizable de selects encadenados Categoría -> Código ---
+    function configurarSelectorCodigo(idCategoria, idCodigo, idPreview) {
+        const selectCategoria = document.getElementById(idCategoria);
+        const selectCodigo = document.getElementById(idCodigo);
+        const previewCodigo = document.getElementById(idPreview);
+
+        selectCategoria.addEventListener('change', function () {
+            const categoriaId = parseInt(this.value, 10);
+            const opciones = catalogoCodigos.filter(c => c.categoria_id === categoriaId);
+
+            if (previewCodigo) previewCodigo.textContent = '';
+            selectCodigo.innerHTML = '';
+
+            if (opciones.length === 0) {
+                selectCodigo.innerHTML = '<option value="" selected disabled>No hay códigos para esta categoría</option>';
+                selectCodigo.disabled = true;
+                return;
+            }
+
+            selectCodigo.disabled = false;
+            selectCodigo.innerHTML = '<option value="" selected disabled>Seleccione código</option>';
+            opciones.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.dataset.siguiente = c.prefijo + '-' + c.siguiente;
+                opt.textContent = c.prefijo + (c.descripcion ? ' — ' + c.descripcion : '');
+                selectCodigo.appendChild(opt);
+            });
+        });
+
+        if (previewCodigo) {
+            selectCodigo.addEventListener('change', function () {
+                const opt = this.options[this.selectedIndex];
+                previewCodigo.textContent = opt && opt.dataset.siguiente
+                    ? 'Se asignará el código: ' + opt.dataset.siguiente
+                    : '';
+            });
+        }
+    }
+
+    configurarSelectorCodigo('selectCategoriaUnico', 'selectCodigoUnico', 'previewCodigoUnico');
+    configurarSelectorCodigo('selectCategoriaLote', 'selectCodigoLote', null);
+
+    // --- Vista previa del rango de códigos que se asignarán en el lote ---
+    function actualizarPreviewLote() {
+        const selectCodigo = document.getElementById('selectCodigoLote');
+        const opt = selectCodigo.options[selectCodigo.selectedIndex];
+        const previewCodigo = document.getElementById('previewCodigoLote');
+        const cantidad = parseInt(document.getElementById('cantidadLote').value, 10) || 0;
+
+        if (!opt || !opt.dataset.siguiente || cantidad < 1) {
+            previewCodigo.textContent = '';
+            return;
+        }
+
+        const partes = opt.dataset.siguiente.split('-');
+        const prefijo = partes[0];
+        const inicio = parseInt(partes[1], 10);
+        const fin = inicio + cantidad - 1;
+
+        previewCodigo.textContent = cantidad === 1
+            ? `Se asignará el código: ${prefijo}-${String(inicio).padStart(3, '0')}`
+            : `Se asignarán los códigos: ${prefijo}-${String(inicio).padStart(3, '0')} a ${prefijo}-${String(fin).padStart(3, '0')}`;
+    }
+    document.getElementById('selectCodigoLote').addEventListener('change', actualizarPreviewLote);
+    document.getElementById('cantidadLote').addEventListener('input', actualizarPreviewLote);
+
+    // Reiniciar cada formulario al cerrar su modal
+    ['modalAgregarUnico', 'modalAgregarLote'].forEach(idModal => {
+        document.getElementById(idModal).addEventListener('hidden.bs.modal', function () {
+            this.querySelector('form').reset();
+            const selectCodigo = this.querySelector('select[name="codigo_id"]');
+            if (selectCodigo) {
+                selectCodigo.innerHTML = '<option value="" selected disabled>Seleccione categoría primero</option>';
+                selectCodigo.disabled = true;
+            }
+            this.querySelectorAll('.form-text[id^="previewCodigo"]').forEach(p => p.textContent = '');
+        });
+    });
+
+    // --- Búsqueda, filtros y orden del acordeón ---
+    function aplicarFiltros() {
+        const busqueda = (document.getElementById('filtroBusqueda').value || '').toLowerCase();
+        const estado = document.getElementById('filtroEstado').value;
+        const categoria = document.getElementById('filtroCategoria').value;
+        const codigo = document.getElementById('filtroCodigo').value;
+        const hayFiltroActivo = !!(busqueda || estado);
+
+        let algunGrupoVisible = false;
+
+        document.querySelectorAll('.grupo-item').forEach(grupo => {
+            if (categoria && grupo.dataset.categoria !== categoria) {
+                grupo.style.display = 'none';
+                return;
+            }
+            if (codigo && grupo.dataset.prefijo !== codigo) {
+                grupo.style.display = 'none';
+                return;
+            }
+
+            let algunaFilaVisible = false;
+            grupo.querySelectorAll('tbody tr.fila-item').forEach(fila => {
+                const coincideBusqueda = !busqueda || fila.dataset.search.includes(busqueda);
+                const coincideEstado = !estado || fila.dataset.estado === estado;
+                const visible = coincideBusqueda && coincideEstado;
+                fila.style.display = visible ? '' : 'none';
+                if (visible) algunaFilaVisible = true;
+            });
+
+            grupo.style.display = algunaFilaVisible ? '' : 'none';
+            if (algunaFilaVisible) algunGrupoVisible = true;
+
+            // Autoexpandir grupos con coincidencias cuando hay una búsqueda/filtro activo
+            const collapseEl = grupo.querySelector('.accordion-collapse');
+            const boton = grupo.querySelector('.accordion-button');
+            if (algunaFilaVisible && hayFiltroActivo) {
+                collapseEl.classList.add('show');
+                boton.classList.remove('collapsed');
+                boton.setAttribute('aria-expanded', 'true');
+            } else if (!hayFiltroActivo) {
+                collapseEl.classList.remove('show');
+                boton.classList.add('collapsed');
+                boton.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        const totalGrupos = document.querySelectorAll('.grupo-item').length;
+        const sinResultados = document.getElementById('sinResultados');
+        if (sinResultados) {
+            sinResultados.classList.toggle('d-none', totalGrupos === 0 || algunGrupoVisible);
+        }
+
+        aplicarOrden();
+    }
+
+    function aplicarOrden() {
+        const orden = document.getElementById('filtroOrden').value;
+        const contenedor = document.getElementById('accordionInventario');
+        const grupos = Array.from(contenedor.querySelectorAll('.grupo-item'));
+
+        grupos.sort((a, b) => {
+            const fechaA = a.dataset.fecha || '';
+            const fechaB = b.dataset.fecha || '';
+            return orden === 'desc' ? fechaB.localeCompare(fechaA) : fechaA.localeCompare(fechaB);
+        });
+
+        grupos.forEach(g => contenedor.appendChild(g));
+    }
+
+    ['filtroBusqueda', 'filtroEstado', 'filtroCategoria', 'filtroCodigo'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', aplicarFiltros);
+        el.addEventListener('change', aplicarFiltros);
+    });
+    document.getElementById('filtroOrden').addEventListener('change', aplicarOrden);
+</script>
 {% endblock %}

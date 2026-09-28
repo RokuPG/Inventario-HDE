@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="mb-4">
+        <h2 class="fw-bold mb-1"><i class="bi bi-tags me-2"></i>Gestión de Categorías y Códigos</h2>
+        <p class="text-muted small mb-0">
+            Define aquí las categorías de equipos y los códigos disponibles para cada una.
+            Al agregar un elemento en el inventario, solo se podrá elegir entre estas opciones
+            y el número de identificación se generará automáticamente (Ej: MON-001, MON-002...).
+        </p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Columna de Categorías -->
+        <div class="col-12 col-lg-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white fw-bold">
+                    <i class="bi bi-folder2 me-2"></i>Categorías
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('agregar_categoria') }}" method="POST" class="d-flex gap-2 mb-3">
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Cómputo, Red, Herramienta" required>
+                        <button type="submit" class="btn btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Agregar</button>
+                    </form>
+
+                    <ul class="list-group">
+                        {% for cat in categorias %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ cat.nombre }}
+                            <a href="{{ url_for('eliminar_categoria', categoria_id=cat.id) }}"
+                               class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('¿Eliminar esta categoría? Solo es posible si no tiene códigos asociados.');">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted text-center">No hay categorías registradas.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de Códigos -->
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white fw-bold">
+                    <i class="bi bi-upc-scan me-2"></i>Códigos por Categoría
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('agregar_codigo') }}" method="POST" class="row g-2 mb-3">
+                        <div class="col-12 col-md-4">
+                            <select name="categoria_id" class="form-select" required>
+                                <option value="" selected disabled>Categoría</option>
+                                {% for cat in categorias %}
+                                    <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <input type="text" name="prefijo" class="form-control text-uppercase" placeholder="Ej: MON" maxlength="10" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <input type="text" name="descripcion" class="form-control" placeholder="Descripción (opcional)">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i> Agregar</button>
+                        </div>
+                    </form>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th>Prefijo</th>
+                                    <th>Descripción</th>
+                                    <th>Siguiente código</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cod in codigos %}
+                                <tr>
+                                    <td>{{ cod.categoria_nombre }}</td>
+                                    <td><code>{{ cod.prefijo }}</code></td>
+                                    <td>{{ cod.descripcion or '-' }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ cod.prefijo }}-{{ '%03d' % (cod.contador + 1) }}</span></td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('eliminar_codigo', codigo_id=cod.id) }}"
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('¿Eliminar este código? Solo es posible si no está en uso.');">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">No hay códigos registrados.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
