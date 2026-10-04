@@ -369,6 +369,43 @@ def eliminar_codigo(codigo_id):
         db.commit()
     return redirect(url_for('categorias'))
 
+# --- REORDENAMIENTO AUTOMÁTICO DE CÓDIGOS ---
+
+def recalcular_codigos(db, codigo_id):
+    """Renumera todos los elementos de un código (prefijo) para que queden
+    consecutivos desde 001, respetando su orden actual, y actualiza el
+    contador del prefijo al total real de elementos.
+
+    Ejemplo: existen MON-001..MON-005 y se elimina MON-002
+             -> MON-003 pasa a MON-002, MON-004 a MON-003, MON-005 a MON-004
+             -> contador = 4, el siguiente nuevo será MON-005.
+    """
+    codigo_row = db.execute("SELECT prefijo FROM codigos WHERE id = ?", (codigo_id,)).fetchone()
+    if not codigo_row:
+        return
+    prefijo = codigo_row['prefijo']
+
+    elementos = db.execute(
+        "SELECT id, codigo FROM elementos WHERE codigo_id = ?", (codigo_id,)
+    ).fetchall()
+
+    def numero(e):
+        try:
+            return int(e['codigo'].rsplit('-', 1)[1])
+        except (IndexError, ValueError):
+            return 0
+
+    # Orden ascendente por número actual: cada elemento recibe un número
+    # menor o igual al que tenía, así nunca choca con el UNIQUE de 'codigo'.
+    elementos = sorted(elementos, key=numero)
+
+    for posicion, e in enumerate(elementos, start=1):
+        nuevo_codigo = f"{prefijo}-{posicion:03d}"
+        if nuevo_codigo != e['codigo']:
+            db.execute("UPDATE elementos SET codigo = ? WHERE id = ?", (nuevo_codigo, e['id']))
+
+    db.execute("UPDATE codigos SET contador = ? WHERE id = ?", (len(elementos), codigo_id))
+
 # --- OPERACIONES CRUD DE ELEMENTOS ---
 
 @app.route('/agregar', methods=['POST'])
@@ -484,7 +521,19 @@ def editar_elemento(elem_id):
 @rol_required('Administrador')
 def eliminar_elemento(elem_id, seccion_id):
     db = get_db()
+
+    # Se guarda a qué código (MON, CPU...) pertenecía antes de borrarlo
+    fila = db.execute('SELECT codigo_id FROM elementos WHERE id = ?', (elem_id,)).fetchone()
+    codigo_id = fila['codigo_id'] if fila else None
+
     db.execute('DELETE FROM elementos WHERE id = ?', (elem_id,))
+
+    # Reordena la numeración: sin importar si se borró el primero, uno del
+    # medio o el último, los códigos restantes quedan consecutivos (001, 002...)
+    # y el contador vuelve a coincidir con la cantidad real de elementos.
+    if codigo_id:
+        recalcular_codigos(db, codigo_id)
+
     db.commit()
     return redirect(url_for('ver_seccion', seccion_id=seccion_id))
 
@@ -661,8 +710,9 @@ def exportar_pdf():
         mimetype='application/pdf'
     )
 
+# Se ejecuta también bajo gunicorn (donde __main__ no se cumple)
+init_db()
+
 if __name__ == '__main__':
-    init_db()
-    app.run(debug=True)
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
